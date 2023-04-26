@@ -1,7 +1,8 @@
 import { reactive } from '../reactivity/reactive'
-import { effect } from '../reactivity/effect'
+import { effect, stop } from '../reactivity/effect'
 
 describe('effect', () => {
+
   it('happy path', () => {
     const user = reactive({
       age: 10
@@ -32,7 +33,8 @@ describe('effect', () => {
     expect(foo).toBe(12)
     expect(r).toBe('foo')
   })
-
+  // effect( fn, {sheduler})
+  // 当响应式对象 set update 触发 sheduler 而不是fn
   it('scheduler', () => {
     let dummy;
     let run: any;
@@ -53,5 +55,39 @@ describe('effect', () => {
     run();
     expect(dummy).toBe(2)
 
+  })
+  // const stop = effect(fn, { sheduler })
+  // stop() 不会出发对应的依赖了
+  it('stop', () => {
+    let dummy;
+    const obj = reactive({ prop: 1 })
+    const runner = effect(() => {
+      dummy = obj.prop
+    })
+    obj.prop = 2;
+    expect(dummy).toBe(2);
+    stop(runner);
+    obj.prop = 3;
+    expect(dummy).toBe(2);
+    runner()
+    expect(dummy).toBe(3)
+  });
+
+  it('onStop', () => {
+    const obj = reactive({
+      foo: 1
+    });
+    const onStop = jest.fn()
+    let dummy;
+    const runner = effect(
+      () => {
+        dummy = obj.foo;
+      },
+      {
+        onStop
+      }
+    )
+    stop(runner)
+    expect(onStop).toBeCalledTimes(1)
   })
 })
